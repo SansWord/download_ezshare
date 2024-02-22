@@ -8,7 +8,7 @@
 ########## Edit this to change your local destination ########### ########### ########### ########### ########### 
 
 # Local directory for the data
-mainDir="/home/biorn/AirSense10-Data/"
+mainDir="/Users/sansword/Documents/wifi_sd_ezshare7/"
 
 # Ez Share top Url, top directory, first folder and subfolders
 mainUrl="http://192.168.4.1"
@@ -23,7 +23,7 @@ check="true"
 # hard
 # soft download mode is slower, dl 1 by 1 but safer (useless but was my first method so if problem use it)
 # hardmode is fast but less safe (if card crash disable it)
-mode="normal"
+mode="soft"
 
 # parallels download aviable only for normal mode (decrease if computer isssue or play with it to try to download faster)
 pDl=16 #default: 8
@@ -52,7 +52,7 @@ dlList=()
 
 ########### check installed utilities ###########
 for ex in \
-echo echo date grep sed xargs wget
+echo echo gdate grep sed xargs wget
   do
     loc=$(which "${ex}")
     if [ "${loc}" = "" ] ; then
@@ -127,13 +127,14 @@ getDataInfo()
 fileORdir()
 {
 echo "Scan of ${remoteDir[0]}${relPath[$currentDir]}"
+DATA_INFO=$(getDataInfo)
 while read fileDate ; do
   if [ ! -z "$fileDate" ]; then
   read fileTime
   read fileSize
   read link
   read fileName
-  remoteTime="$(date -d "${fileDate} ${fileTime}" +%s)"
+  remoteTime="$(gdate  -d "${fileDate} ${fileTime}" +%s)"
   ########## DIR ##########
   if [ "$fileSize" = "DIR" ] ; then
     let nbdAll=nbdAll+1
@@ -156,7 +157,7 @@ while read fileDate ; do
       let nbdNEW=nbdNEW+1
       fileORdir
       echo "New directory find: ${local_DIR}"
-    elif [ "$(date -r "${local_DIR}" +%s)" -lt "$(date -d "${fileDate}" +%s)" ] ; then
+    elif [ "$(gdate  -r "${local_DIR}" +%s)" -lt "$(gdate  -d "${fileDate}" +%s)" ] ; then
       let nbdUPD=nbdUPD+1
       fileORdir
       echo "Updated directory find: /${local_DIR}"
@@ -186,7 +187,7 @@ END
         dlList &
         echo "New file added to downloads: ${relFile}"
       fi
-    elif [ "$(date -r "${localFile}" +%s)" -lt "${remoteTime}" ] ; then
+    elif [ "$(gdate  -r "${localFile}" +%s)" -lt "${remoteTime}" ] ; then
       let nbfUpd=nbfUpd+1
       if [ "${mode}" == "soft" ] ; then
         dlList
@@ -203,7 +204,7 @@ END
   fi
 fi
 
-done <<< $(getDataInfo)
+done <<< "$DATA_INFO"
 }
 
 ########## main body ##########
