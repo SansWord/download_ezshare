@@ -8,7 +8,7 @@
 ########## Edit this to change your local destination ########### ########### ########### ########### ########### 
 
 # Local directory for the data
-mainDir="/Users/sansword/Documents/wifi_sd_ezshare7/"
+mainDir="/Users/sansword/Documents/wifi_sd_ezshare/"
 
 # Ez Share top Url, top directory, first folder and subfolders
 mainUrl="http://192.168.4.1"
@@ -29,8 +29,10 @@ mode="soft"
 pDl=16 #default: 8
 
 # Use this program as a blacklist or a whitelist, as you prefer
-whiteList=".log|.crc|.tgt|.dat|.edf|DATALOG|SETTINGS"
+whiteList=".log|.crc|.tgt|.dat|.edf|.json|DATALOG|SETTINGS"
 #blackList=".Spotlight-V100|.Trashes|._.DS_Store|.DS_Store|.fseventsd|Volume|SYSTEM~1|EZSHARE.CFG|Id.txt"                                         
+
+postHookScript="./post_action.sh $mainDir"
                                                                                                       
 ########### Don't touch the rest ########### ########### ########### ########### ########### ########### ###########
 
@@ -236,3 +238,9 @@ elif (( $SECONDS > 60 )) ; then
 else
     echo "Completed in $SECONDS seconds"
 fi
+
+if [ ! -z "$postHookScript" ] ; then
+  echo "Executing postHook: [$postHookScript]"
+  sh -c "$postHookScript"
+fi
+
