@@ -5,7 +5,7 @@
 # The webinterface could differt and then have to modify the getLine function
 # about the mode for example HardMode=15s NormalMode= SoftMode=3min15s
 
-########## Edit this to change your local destination ########### ########### ########### ########### ########### 
+########## Edit this to change your local destination ########### ########### ########### ########### ###########
 
 # Local directory for the data
 mainDir="/Users/sansword/Documents/wifi_sd_ezshare/"
@@ -17,23 +17,26 @@ remoteDir=("dir=A:")
 # auto check if all utilities are present
 check="true"
 
-# 3 Modes of download: 
+# 3 Modes of download:
 # normal
 # soft
 # hard
 # soft download mode is slower, dl 1 by 1 but safer (useless but was my first method so if problem use it)
 # hardmode is fast but less safe (if card crash disable it)
-mode="soft"
+mode="normal"
 
 # parallels download aviable only for normal mode (decrease if computer isssue or play with it to try to download faster)
 pDl=16 #default: 8
 
 # Use this program as a blacklist or a whitelist, as you prefer
 whiteList=".log|.crc|.tgt|.dat|.edf|.json|DATALOG|SETTINGS"
-#blackList=".Spotlight-V100|.Trashes|._.DS_Store|.DS_Store|.fseventsd|Volume|SYSTEM~1|EZSHARE.CFG|Id.txt"                                         
+#blackList=".Spotlight-V100|.Trashes|._.DS_Store|.DS_Store|.fseventsd|Volume|SYSTEM~1|EZSHARE.CFG|Id.txt"
 
 postHookScript="./post_action.sh $mainDir"
-                                                                                                      
+
+# Decide to print debug log or not using true/false
+DEBUG="false"
+
 ########### Don't touch the rest ########### ########### ########### ########### ########### ########### ###########
 
 
@@ -46,7 +49,11 @@ nbdAll=0
 
 nbfAll=0
 nbfNew=0
+downloadedFileList=()
 nbfUpd=0
+uploadedFileList=()
+nbfUnchanged=0
+unchangedFileList=()
 
 nbfDl=0
 dlList=()
@@ -79,7 +86,7 @@ dlList()
     dlList["$nbfDl"]="${localFile} ${mainUrl}/${relFile}"
     let nbfDl=nbfDl+1
   else
-    echo "${localFile} ${mainUrl}/${relFile}" |  xargs -n 2 -P "${pDl}" wget --no-use-server-timestamps -q -O 
+    echo "${localFile} ${mainUrl}/${relFile}" |  xargs -n 2 -P "${pDl}" wget --no-use-server-timestamps -q -O
   fi
 }
 
@@ -87,17 +94,49 @@ dlList()
 #################### show files to downlad ####################
 dlShow()
 {
-  for value in "${dlList[@]}"
+  showList "${dlList[@]}"
+}
+
+#################### print list of value ####################
+showList()
+{
+  local printOrNot="$1"   # Save first argument in a variable
+  shift            # Shift all arguments to the left (original $1 gets lost)
+  local displayList=("$@") # Rebuild the array with rest of arguments
+
+  for value in "${displayList[@]}"
   do
-    echo "${value}"
+    conditional_echo $printOrNot "${value}"
   done
 }
 
+showDebugList()
+{
+  displayList=("$@")
+  for value in "${displayList[@]}"
+  do
+    debug_log "${value}"
+  done
+}
+
+#################### echo debug info ####################
+debug_log()
+{
+  msg=$1
+  conditional_echo DEBUG $msg
+}
+
+conditional_echo()
+{
+  printOrNot=$1
+  msg=$2
+  [ "${printOrNot}" = "true" ] && echo $msg
+}
 
 #################### dowlnoad files ####################
 dlProcess()
 {
-   echo "${dlList[*]}" | xargs -n 2 -P "${pDl}" wget --no-use-server-timestamps -q -O 
+   echo "${dlList[*]}" | xargs -n 2 -P "${pDl}" wget --no-use-server-timestamps -q -O
 }
 
 
@@ -113,7 +152,7 @@ getLine()
 
 #################### get info from the webbrowser ####################
 getDataInfo()
-{ 
+{
   while read line ; do
     if [ ! -z "$line" ]; then
       arr=(${line})
@@ -128,7 +167,7 @@ getDataInfo()
 #################### scan server ####################
 fileORdir()
 {
-echo "Scan of ${remoteDir[0]}${relPath[$currentDir]}"
+debug_log "Scan of ${remoteDir[0]}${relPath[$currentDir]}"
 DATA_INFO=$(getDataInfo)
 while read fileDate ; do
   if [ ! -z "$fileDate" ]; then
@@ -165,7 +204,7 @@ while read fileDate ; do
       echo "Updated directory find: /${local_DIR}"
     fi
 END
-########## <<<<< To check 
+########## <<<<< To check
   ########## FILE ##########
   else
     let nbfAll=nbfAll+1
@@ -178,30 +217,34 @@ END
 
     localFile="${mainDir}/${relFile}"
     if ! [ -f "${localFile}" ]; then
+      downloadedFileList["$nbfNew"]=" ${relFile}"
       let nbfNew=nbfNew+1
       if [ "${mode}" == "soft" ] ; then
         dlList
-        echo "New file downloaded: ${relFile}"
       elif  [ "${mode}" == "normal" ] ; then
         dlList
-        echo "New file added to downloads: ${relFile}"
+        debug_log "New file added to downloads: ${relFile}"
       else
         dlList &
-        echo "New file added to downloads: ${relFile}"
+        debug_log "New file added to downloads: ${relFile}"
       fi
     elif [ "$(gdate  -r "${localFile}" +%s)" -lt "${remoteTime}" ] ; then
+      uploadedFileList["$nbfUpd"]=" ${relFile}"
       let nbfUpd=nbfUpd+1
       if [ "${mode}" == "soft" ] ; then
         dlList
-        echo "File updated: ${relFile}"
       elif  [ "${mode}" == "normal" ] ; then
         dlList
-        echo "Updated file added to downloads: ${relFile}"        
+        debug_log "Updated file added to downloads: ${relFile}"
       else
         dlList &
-        echo "Updated file added to downloads: ${relFile}"
+        debug_log "Updated file added to downloads: ${relFile}"
 
       fi
+    else
+      # store and log file unchanged
+      unchangedFileList["$nbfUnchanged"]=" ${relFile}"
+      let nbfUnchanged=nbfUnchanged+1
     fi
   fi
 fi
@@ -218,19 +261,30 @@ echo "${nbfAll} File(s) scanned in ${nbdAll} Folder(s)"
 
 if [ "${mode}" == "normal" ] && [ "${nbfDl}" -ne "0" ] ; then
   echo "Downloading of ${nbfDl} Files in progress, Please Wait..."
-  dlProcess 
-fi 
+  dlProcess
+fi
 
-if [ "${nbfNew}" != "0" ] ; then echo "${nbfNew} New(s) file(s) downloaded" ; fi
+if [ "${nbfUnchanged}" != "0" ] ; then
+  echo "== ${nbfUnchanged} File(s) unchanged:"
+  showList $DEBUG "${unchangedFileList[@]}"
+fi
 
-if [ "${nbfUpd}" != "0" ] ; then echo "${nbfUpd} File(s) Updated" ; fi
+if [ "${nbfNew}" != "0" ] ; then
+  echo "== ${nbfNew} New(s) file(s) downloaded:"
+  showList "true" "${downloadedFileList[@]}"
+fi
+
+if [ "${nbfUpd}" != "0" ] ; then
+  echo "== ${nbfUpd} File(s) Updated:"
+  showList "true" "${uploadedFileList[@]}"
+fi
 
 
 if (( $SECONDS > 3600 )) ; then
     let "hours=SECONDS/3600"
     let "minutes=(SECONDS%3600)/60"
     let "seconds=(SECONDS%3600)%60"
-    echo "Completed in $hours hour(s), $minutes minute(s) and $seconds second(s)" 
+    echo "Completed in $hours hour(s), $minutes minute(s) and $seconds second(s)"
 elif (( $SECONDS > 60 )) ; then
     let "minutes=(SECONDS%3600)/60"
     let "seconds=(SECONDS%3600)%60"
