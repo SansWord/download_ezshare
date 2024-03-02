@@ -32,6 +32,8 @@ pDl=16 #default: 8
 whiteList=".log|.crc|.tgt|.dat|.edf|.json|DATALOG|SETTINGS"
 #blackList=".Spotlight-V100|.Trashes|._.DS_Store|.DS_Store|.fseventsd|Volume|SYSTEM~1|EZSHARE.CFG|Id.txt"
 
+
+preHookScript="./prt_action.sh"
 postHookScript="./post_action.sh $mainDir"
 
 # Decide to print debug log or not using true/false
@@ -252,8 +254,17 @@ fi
 done <<< "$DATA_INFO"
 }
 
-########## main body ##########
-#2021-3-24 13:45:10
+########## main body ##############################
+# 1. execute preHookScript if exists
+# 2. scan and download files from SD wifi card
+# 1. execute postHookScript if exists
+###################################################
+#2024-3-01 20:55:10
+
+if [ ! -z "$preHookScript" ] ; then
+  echo "Executing preHook: [$preHookScript]"
+  sh -c "$preHookScript"
+fi
 
 fileORdir
 
