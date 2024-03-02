@@ -5,14 +5,27 @@
 # The webinterface could differt and then have to modify the getLine function
 # about the mode for example HardMode=15s NormalMode= SoftMode=3min15s
 
-########## Edit this to change your local destination ########### ########### ########### ########### ###########
+########## import config from config.ini ########### ########### ########### ########### ###########
+source ./config.ini
 
-# Local directory for the data
-mainDir="/Users/sansword/Documents/wifi_sd_ezshare/"
+
+########## export variables for preHookScript and postHookScript
+export mainDir                 # download destination
+
+export SD_WIFI_SSID               # SD Card Wifi SSID
+export SD_WIFI_AUTH               # SD Card Wifi auth
+
+export HOUSE_WIFI_SSID            # House Wifi SSID
+export HOUSE_WIFI_AUTH            # House Wifi auth
+export HOUSE_WIFI_HELTHCHECK_URL  # House Wifi health check url
+
 
 # Ez Share top Url, top directory, first folder and subfolders
 mainUrl="http://192.168.4.1"
+export mainUrl     # for pre hook to health check when switch to SD wifi
 remoteDir=("dir=A:")
+preHookScript="./pre_action.sh"
+postHookScript="./post_action.sh"
 
 # auto check if all utilities are present
 check="true"
@@ -28,13 +41,10 @@ mode="normal"
 # parallels download aviable only for normal mode (decrease if computer isssue or play with it to try to download faster)
 pDl=16 #default: 8
 
-# Use this program as a blacklist or a whitelist, as you prefer
+# Use this program as a denylist or a whitelist, as you prefer
 whiteList=".log|.crc|.tgt|.dat|.edf|.json|DATALOG|SETTINGS"
-#blackList=".Spotlight-V100|.Trashes|._.DS_Store|.DS_Store|.fseventsd|Volume|SYSTEM~1|EZSHARE.CFG|Id.txt"
+#denylist=".Spotlight-V100|.Trashes|._.DS_Store|.DS_Store|.fseventsd|Volume|SYSTEM~1|EZSHARE.CFG|Id.txt"
 
-
-preHookScript="./prt_action.sh"
-postHookScript="./post_action.sh $mainDir"
 
 # Decide to print debug log or not using true/false
 DEBUG="false"
@@ -76,6 +86,30 @@ if [ "${check}" = "false" ] ; then
     exit 1
 fi
 ECHO=$(which echo)
+
+#################### switch wifi ####################
+# export for preHook and postHook
+# switch wifi with health_check url,
+# wait until health_check url returns response to make sure wifi is connected.
+switchWiFi() # TODO not finished yet
+{
+  WIFI_SSID=$1
+  WIFI_AUTH=$2
+  HEALTH_CHECK_URL=$3
+  echo "switch wifi: $WIFI_SSID"
+  networksetup -setairportnetwork en0 $WIFI_SSID $WIFI_AUTH
+  echo "health check: $HEALTH_CHECK_URL"
+  until [ \
+    "$(curl -s -w '%{http_code}' -o /dev/null "$HEALTH_CHECK_URL")" \
+    -eq 200 ]
+  do
+    ((c++)) && ((c==10)) && break
+    echo "retry"
+    sleep 2
+  done
+  echo "connected"
+}
+export -f switchWiFi
 
 
 #################### download files ####################
@@ -148,7 +182,7 @@ getLine()
   wget -q -O- "${mainUrl}/dir?${remoteDir[$currentDir]}" |
   sed -n '/a>$/p' | sed -e '/\.<\/a>$/d' |  sed -e 's/<\/a>//g' | sed -e 's/<a href="//g' | sed -e 's/">//g' |
   sed -e's/- /-0/g' | sed -e 's/: /:0/g' | sed -e 's/&lt;DIR&gt;/DIR/g' |
-  if [ ! -z "$blackList" ] ; then grep -vwE -i "${blackList}" ; elif [ ! -z "$whiteList" ] ; then grep -E -i "${whiteList}" ; fi
+  if [ ! -z "$denylist" ] ; then grep -vwE -i "${denylist}" ; elif [ ! -z "$whiteList" ] ; then grep -E -i "${whiteList}" ; fi
 }
 
 

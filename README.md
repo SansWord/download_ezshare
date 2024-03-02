@@ -7,6 +7,10 @@ Current configuration is to get files from AirSense11 and plan to upload to Slee
 Plese config at the top of ImportExShare.sh and take your own risk using it.
 
 ----
+Setup:
+1. cp config.ini.template config.ini
+2. config value in config.ini for your environment
+----
 Usage: sh ./ImportEzShare.sh
 
 
