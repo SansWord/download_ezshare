@@ -1,0 +1,9 @@
+########## your local destination ###########
+mainDir="/Users/sansword/Documents/wifi_sd_ezshare/"
+
+SD_WIFI_SSID=
+SD_WIFI_AUTH=
+
+HOUSE_WIFI_SSID=
+HOUSE_WIFI_AUTH=
+HOUSE_WIFI_HELTHCHECK_URL="https://home.sleephq.com/"
