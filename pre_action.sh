@@ -1,4 +1,5 @@
 #!/bin/bash
 
-#TODO swith to WiFI Card wifi
-echo "Executing preHook"
+echo "Executing preHook:"
+
+switchWiFi "$SD_WIFI_SSID" "$SD_WIFI_AUTH" "$mainUrl"
