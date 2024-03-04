@@ -10,3 +10,5 @@ mv "$mainDir/STR.EDF" "$mainDir/STR.edf"
 switchWiFi "$HOUSE_WIFI_SSID" "$HOUSE_WIFI_AUTH" "$HOUSE_WIFI_HELTHCHECK_URL"
 
 #TODO upload to sleepHQ with API
+open "$mainDir"
+/usr/bin/open -a "/Applications/Google Chrome.app" 'https://sleephq.com/account/teams/eZxrnY/imports'
